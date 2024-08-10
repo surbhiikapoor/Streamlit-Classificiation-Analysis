@@ -9,9 +9,43 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, confu
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 def run_ml_app(df):
-    st.subheader("Model Selection and Training")
+    st.markdown(
+        """
+        <style>
+        .subheader {
+            font-size: 24px;
+            color: #6a0dad;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .button-container button {
+            background-color: #6a0dad;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .button-container button:hover {
+            background-color: #5a0c9c;
+        }
+        .select-container .stSelectbox>label {
+            color: #6a0dad;
+            font-weight: bold;
+        }
+        .checkbox-container .stCheckbox>label {
+            color: #6a0dad;
+            font-weight: bold;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Subheader for Model Selection and Training
+    st.markdown('<div class="subheader">Model Selection and Training</div>', unsafe_allow_html=True)
 
     # Selecting Features and Target
     features = st.multiselect("Select features for the model", df.columns.tolist(), default=df.columns.tolist()[:-1])
@@ -76,20 +110,25 @@ def run_ml_app(df):
             st.warning("Please train the model first.")
 
     # Evaluation Metrics
-    st.subheader("Evaluate Model Performance")
+    st.markdown('<div class="subheader">Evaluate Model Performance</div>', unsafe_allow_html=True)
 
     if 'y_pred' in st.session_state:
-        if st.button("Show Accuracy"):
-            accuracy = accuracy_score(st.session_state['y_test'], st.session_state['y_pred'])
-            st.write(f"Model Accuracy: {accuracy:.2f}")
+        col1, col2, col3 = st.columns(3)
 
-        if st.button("Show Precision"):
-            precision = precision_score(st.session_state['y_test'], st.session_state['y_pred'], average='weighted')
-            st.write(f"Model Precision: {precision:.2f}")
+        with col1:
+            if st.button("Show Accuracy"):
+                accuracy = accuracy_score(st.session_state['y_test'], st.session_state['y_pred'])
+                st.write(f"Model Accuracy: {accuracy:.2f}")
 
-        if st.button("Show Recall"):
-            recall = recall_score(st.session_state['y_test'], st.session_state['y_pred'], average='weighted')
-            st.write(f"Model Recall: {recall:.2f}")
+        with col2:
+            if st.button("Show Precision"):
+                precision = precision_score(st.session_state['y_test'], st.session_state['y_pred'], average='weighted')
+                st.write(f"Model Precision: {precision:.2f}")
+
+        with col3:
+            if st.button("Show Recall"):
+                recall = recall_score(st.session_state['y_test'], st.session_state['y_pred'], average='weighted')
+                st.write(f"Model Recall: {recall:.2f}")
 
         if st.button("Show Confusion Matrix"):
             st.write("Confusion Matrix:")
