@@ -63,12 +63,14 @@ def run_eda_app(df):
             st.success("Rows with missing values dropped.")
 
         elif missing_values_option == "Fill with Mean":
-            df.fillna(df.mean(), inplace=True)
-            st.success("Missing values filled with the mean of each column.")
+            numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+            df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
+            st.success("Missing values filled with the mean of each numeric column.")
 
         elif missing_values_option == "Fill with Median":
-            df.fillna(df.median(), inplace=True)
-            st.success("Missing values filled with the median of each column.")
+            numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+            df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
+            st.success("Missing values filled with the median of each numeric column.")
 
         elif missing_values_option == "Fill with Mode":
             df.fillna(df.mode().iloc[0], inplace=True)
