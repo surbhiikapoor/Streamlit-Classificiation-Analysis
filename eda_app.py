@@ -3,6 +3,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+
 def run_eda_app(df):
     st.markdown(
         """
@@ -48,6 +49,30 @@ def run_eda_app(df):
     if st.button("Display First Few Rows of the Dataset", key="head"):
         st.write("**First few rows of the dataset:**")
         st.write(df.head())
+
+    # Handling Missing Values
+    st.markdown('<div class="subheader">Handle Missing Values</div>', unsafe_allow_html=True)
+
+    if st.checkbox("Show Missing Values Options"):
+        missing_values_option = st.selectbox("Choose a method to handle missing values",
+                                             ["None", "Drop Rows with Missing Values", "Fill with Mean",
+                                              "Fill with Median", "Fill with Mode"])
+
+        if missing_values_option == "Drop Rows with Missing Values":
+            df.dropna(inplace=True)
+            st.success("Rows with missing values dropped.")
+
+        elif missing_values_option == "Fill with Mean":
+            df.fillna(df.mean(), inplace=True)
+            st.success("Missing values filled with the mean of each column.")
+
+        elif missing_values_option == "Fill with Median":
+            df.fillna(df.median(), inplace=True)
+            st.success("Missing values filled with the median of each column.")
+
+        elif missing_values_option == "Fill with Mode":
+            df.fillna(df.mode().iloc[0], inplace=True)
+            st.success("Missing values filled with the mode of each column.")
 
     # Custom styled subheaders for EDA
     st.markdown('<div class="subheader">Exploratory Data Analysis (EDA)</div>', unsafe_allow_html=True)
