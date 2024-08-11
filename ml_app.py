@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, label_binarize
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder, LabelEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -10,42 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def run_ml_app(df):
-    st.markdown(
-        """
-        <style>
-        .subheader {
-            font-size: 24px;
-            color: #6a0dad;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        .button-container button {
-            background-color: #6a0dad;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-size: 16px;
-            margin: 10px 0;
-        }
-        .button-container button:hover {
-            background-color: #5a0c9c;
-        }
-        .select-container .stSelectbox>label {
-            color: #6a0dad;
-            font-weight: bold;
-        }
-        .checkbox-container .stCheckbox>label {
-            color: #6a0dad;
-            font-weight: bold;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Subheader for Model Selection and Training
-    st.markdown('<div class="subheader">Model Selection and Training</div>', unsafe_allow_html=True)
+    st.subheader("Model Selection and Training")
 
     # Selecting Features and Target
     features = st.multiselect("Select features for the model", df.columns.tolist(), default=df.columns.tolist()[:-1])
@@ -54,25 +19,46 @@ def run_ml_app(df):
     X = df[features]
     y = df[target]
 
-    # Check if target is continuous and convert to categorical if necessary
-    if y.dtype in ['float64', 'int64']:
+    # Preprocessing for categorical columns
+    numeric_cols = X.select_dtypes(include=['float64', 'int64']).columns
+    categorical_cols = X.select_dtypes(exclude=['float64', 'int64']).columns
+
+    if len(categorical_cols) > 0:
+        encoder = OneHotEncoder(sparse_output=False)  # Adjusted for newer scikit-learn versions
+        X_categorical = pd.DataFrame(encoder.fit_transform(X[categorical_cols]), columns=encoder.get_feature_names_out(categorical_cols))
+    else:
+        X_categorical = pd.DataFrame()
+
+    # Scaling numeric columns
+    if len(numeric_cols) > 0:
+        scaling_option = st.selectbox("Choose Scaling Method", ["None", "StandardScaler", "MinMaxScaler"])
+        if scaling_option == "StandardScaler":
+            scaler = StandardScaler()
+            X_numeric = pd.DataFrame(scaler.fit_transform(X[numeric_cols]), columns=numeric_cols)
+        elif scaling_option == "MinMaxScaler":
+            scaler = MinMaxScaler()
+            X_numeric = pd.DataFrame(scaler.fit_transform(X[numeric_cols]), columns=numeric_cols)
+        else:
+            X_numeric = X[numeric_cols]
+    else:
+        X_numeric = pd.DataFrame()
+
+    # Combine numeric and categorical data
+    X_processed = pd.concat([X_numeric, X_categorical], axis=1)
+
+    # Handle target variable (if it's categorical)
+    if y.dtype == 'object' or y.dtype.name == 'category':
+        label_encoder = LabelEncoder()
+        y = label_encoder.fit_transform(y)
+    elif y.dtype in ['float64', 'int64']:
         st.warning("Target variable is continuous. Converting to categorical for classification.")
         bins = st.slider("Select number of bins", 2, 10, 4)
-        y = pd.cut(y, bins=bins, labels=False)  # Discretize the target variable
-
-    # Data Scaling Options
-    scaling_option = st.selectbox("Choose Scaling Method", ["None", "StandardScaler", "MinMaxScaler"])
-    if scaling_option == "StandardScaler":
-        scaler = StandardScaler()
-        X = scaler.fit_transform(X)
-    elif scaling_option == "MinMaxScaler":
-        scaler = MinMaxScaler()
-        X = scaler.fit_transform(X)
+        y = pd.cut(y, bins=bins, labels=False)
 
     # Split the dataset into training and testing sets
     if st.button("Split Data"):
         test_size = st.slider("Test Size (percentage)", 10, 50, 30)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size / 100, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X_processed, y, test_size=test_size / 100, random_state=42)
         st.session_state['X_train'] = X_train
         st.session_state['X_test'] = X_test
         st.session_state['y_train'] = y_train
@@ -110,7 +96,7 @@ def run_ml_app(df):
             st.warning("Please train the model first.")
 
     # Evaluation Metrics
-    st.markdown('<div class="subheader">Evaluate Model Performance</div>', unsafe_allow_html=True)
+    st.subheader("Evaluate Model Performance")
 
     if 'y_pred' in st.session_state:
         col1, col2, col3 = st.columns(3)
@@ -179,8 +165,9 @@ def run_ml_app(df):
     # Download the Predictions as a CSV file
     if st.button("Download Predictions as CSV"):
         if 'y_pred' in st.session_state:
-            results_df = pd.DataFrame(st.session_state['X_test'], columns=features)
-            results_df['Actual'] = st.session_state['y_test'].reset_index(drop=True)
+            results_df = pd.DataFrame(st.session_state['X_test'], columns=X_processed.columns)
+            # Convert y_test to a pandas Series before resetting the index
+            results_df['Actual'] = pd.Series(st.session_state['y_test']).reset_index(drop=True)
             results_df['Predicted'] = st.session_state['y_pred']
             csv = results_df.to_csv(index=False)
             st.download_button("Download CSV", csv, "predictions.csv", "text/csv")
